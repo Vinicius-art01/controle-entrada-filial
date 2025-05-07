@@ -16,18 +16,19 @@ app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret')  # usado para sessio
 
 # --- Banco de usuários (SQLite) ---
 DB_PATH = os.path.join(os.path.dirname(__file__), 'users.db')
+
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL
-        )
-    ''')
-    conn.commit()
-    conn.close()
+    with sqlite3.connect(DB_PATH) as conn:
+        c = conn.cursor()
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL
+            )
+        ''')
+        conn.commit()
+
 init_db()
 
 # --- Configuração do Flask-Login ---
@@ -43,11 +44,10 @@ class User(UserMixin):
 
 @login_manager.user_loader
 def load_user(user_id):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('SELECT id, username, password FROM users WHERE id = ?', (user_id,))
-    row = c.fetchone()
-    conn.close()
+    with sqlite3.connect(DB_PATH) as conn:
+        c = conn.cursor()
+        c.execute('SELECT id, username, password FROM users WHERE id = ?', (user_id,))
+        row = c.fetchone()
     if row:
         return User(*row)
     return None
@@ -58,17 +58,29 @@ def register():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+        confirm = request.form.get('confirm')
+
+        # Validações simples
+        if not username or not password or not confirm:
+            flash('Preencha todos os campos.', 'warning')
+            return redirect(url_for('register'))
+
+        if password != confirm:
+            flash('As senhas não coincidem.', 'danger')
+            return redirect(url_for('register'))
+
         hashed = generate_password_hash(password)
+
         try:
-            conn = sqlite3.connect(DB_PATH)
-            c = conn.cursor()
-            c.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, hashed))
-            conn.commit()
-            conn.close()
+            with sqlite3.connect(DB_PATH) as conn:
+                c = conn.cursor()
+                c.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, hashed))
+                conn.commit()
             flash('Cadastro realizado com sucesso! Faça login.', 'success')
             return redirect(url_for('login'))
         except sqlite3.IntegrityError:
             flash('Usuário já existe.', 'danger')
+
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -76,17 +88,20 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
-        c.execute('SELECT id, password FROM users WHERE username = ?', (username,))
-        row = c.fetchone()
-        conn.close()
+
+        with sqlite3.connect(DB_PATH) as conn:
+            c = conn.cursor()
+            c.execute('SELECT id, password FROM users WHERE username = ?', (username,))
+            row = c.fetchone()
+
         if row and check_password_hash(row[1], password):
             user = User(row[0], username, row[1])
             login_user(user)
             flash('Login realizado com sucesso!', 'success')
             return redirect(url_for('home'))
-        flash('Usuário ou senha incorretos.', 'danger')
+        else:
+            flash('Usuário ou senha incorretos.', 'danger')
+
     return render_template('login.html')
 
 @app.route('/logout')
@@ -129,6 +144,7 @@ def filial_view(filial):
     if filial not in FILIAIS:
         flash('Filial não encontrada.', 'warning')
         return redirect(url_for('home'))
+
     if request.method == 'POST':
         placa = request.form['placa']
         solicitacao = request.form['solicitacao']
@@ -138,6 +154,7 @@ def filial_view(filial):
         fila[filial].append(registro)
         flash(f'Veículo {placa} adicionado à fila.', 'success')
         return redirect(url_for('filial_view', filial=filial))
+
     return render_template('filial.html', filial=filial, fila=fila[filial])
 
 @app.route('/filial/<filial>/liberar/<int:ordem>', methods=['POST'])
