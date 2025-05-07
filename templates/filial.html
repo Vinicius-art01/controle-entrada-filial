@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Fila {{ filial }} — Controle{% endblock %}
+{% block content %}
+<h2 class="mb-4">Filial: {{ filial }}</h2>
+
+<!-- Formulário de Registro -->
+<div class="card mb-4" style="max-width:600px;">
+  <div class="card-body">
+    <form method="POST">
+      <div class="row g-2">
+        <div class="col-md-5">
+          <input name="placa" type="text" class="form-control" placeholder="Placa" required>
+        </div>
+        <div class="col-md-5">
+          <input name="solicitacao" type="text" class="form-control" placeholder="Solicitação" required>
+        </div>
+        <div class="col-md-2">
+          <button class="btn btn-success w-100">Adicionar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Tabela da fila -->
+<div class="table-responsive">
+  <table class="table table-striped">
+    <thead class="table-dark">
+      <tr>
+        <th>Ordem</th><th>Placa</th><th>Solicitação</th><th>Hora</th><th>Ação</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in fila %}
+      <tr>
+        <td>{{ v.ordem }}</td>
+        <td>{{ v.placa }}</td>
+        <td>{{ v.solicitacao }}</td>
+        <td>{{ v.hora }}</td>
+        <td>
+          <form method="POST" action="{{ url_for('liberar', filial=filial, ordem=v.ordem) }}">
+            <button class="btn btn-danger btn-sm">Liberar</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
