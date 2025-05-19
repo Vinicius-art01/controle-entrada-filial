@@ -20,7 +20,8 @@ app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret')
 # ——— Carrega usuários de JSON ——————————————————————————————————————————————
 def carregar_usuarios():
     # Primeira tenta a variável de ambiente, depois o arquivo padrão
-    caminho = os.getenv("USERS_FILE_PATH", "users.json")
+    caminho = os.getenv("USERS_FILE_PATH", os.path.join(os.path.dirname(__file__), "users.json"))
+    print(f"Carregando usuários de: {caminho}")  # <-- AQUI
     try:
         with open(caminho, encoding='utf-8') as f:
             dados = json.load(f)
