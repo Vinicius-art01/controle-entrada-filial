@@ -1,0 +1,17 @@
+[
+  {
+    "matricula": "1001",
+    "senha": "123",
+    "nome": "Carlos Souza"
+  },
+  {
+    "matricula": "1002",
+    "senha": "123",
+    "nome": "Aline Pereira"
+  },
+  {
+    "matricula": "1003",
+    "senha": "123",
+    "nome": "Vinicius"
+  }
+]
